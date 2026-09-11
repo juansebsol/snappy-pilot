@@ -1,0 +1,18 @@
+{
+  "name": "snappy-pilot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "An OpenRouter compose assistant for SnappyMail 2.38.2",
+  "scripts": {
+    "check": "node scripts/check.mjs",
+    "test": "node scripts/check.mjs && node --test tests/*.test.mjs && node scripts/php.mjs tests/backend.php",
+    "test:browser": "node tests/browser.mjs",
+    "package": "node scripts/package.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}

@@ -1,0 +1,40 @@
+.sp-pilot-host { position: relative; }
+.sp-pilot {
+    --sp-bg: #fff; --sp-text: #252a32; --sp-muted: #6c7380; --sp-line: #e3e6eb;
+    --sp-hover: #f2f4f7; --sp-accent: #355bd7;
+    position: absolute; z-index: 30; top: 44px; right: 12px;
+    box-sizing: border-box; width: min(390px, calc(100% - 24px));
+    max-height: min(540px, 75vh); overflow: auto;
+    padding: 14px; border: 1px solid var(--sp-line); border-radius: 10px;
+    background: var(--sp-bg); color: var(--sp-text);
+    box-shadow: 0 5px 20px #11182716;
+    font: 13px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    text-align: left; white-space: normal;
+}
+.sp-pilot * { box-sizing: border-box; }
+.sp-pilot-head { display: flex; flex-wrap: wrap; gap: 5px 12px; align-items: center; margin-bottom: 12px; }
+.sp-pilot-brand { font-size: 13px; font-weight: 650; letter-spacing: -.2px; }
+.sp-pilot-title { font-size: 11px; color: var(--sp-muted); }
+.sp-pilot-menu { max-height: 340px; overflow-y: auto; }
+.sp-pilot-command { display: block; width: 100%; padding: 7px 9px; border: 0; border-radius: 5px; background: transparent; color: inherit; text-align: left; font: inherit; cursor: pointer; }
+.sp-pilot-command:hover, .sp-pilot-active { background: var(--sp-hover); }
+.sp-pilot-note { font-size: 11px; line-height: 1.5; color: var(--sp-muted); margin: 10px 0 0; }
+.sp-pilot-scope { font-size: 11px; color: var(--sp-muted); margin: 0 0 10px; }
+.sp-pilot .sp-pilot-search, .sp-pilot .sp-pilot-instruction { display: block; width: 100%; padding: 9px; border: 1px solid var(--sp-line); border-radius: 6px; background: var(--sp-bg); color: var(--sp-text); font: inherit; box-shadow: none; margin: 0 0 9px; }
+.sp-pilot .sp-pilot-instruction { min-height: 76px; resize: vertical; }
+.sp-pilot-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.sp-pilot .sp-pilot-button { border: 1px solid var(--sp-line); border-radius: 6px; padding: 6px 10px; background: var(--sp-bg); color: var(--sp-text); cursor: pointer; font: inherit; margin-right: 4px; }
+.sp-pilot .sp-pilot-button:hover { background: var(--sp-hover); }
+.sp-pilot .sp-pilot-primary { background: var(--sp-accent); border-color: var(--sp-accent); color: #fff; }
+.sp-pilot .sp-pilot-primary:hover { background: #294cbe; }
+.sp-pilot :focus-visible { outline: 2px solid var(--sp-accent); outline-offset: 2px; }
+.sp-pilot-text { font: inherit; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 250px; overflow: auto; background: transparent; color: inherit; padding: 0; margin: 8px 0; border: 0; }
+.sp-pilot-original { margin-bottom: 10px; font-size: 12px; }
+.sp-pilot-original summary { cursor: pointer; color: var(--sp-muted); }
+.sp-pilot-error { color: #b13535; margin: 8px 0 14px; }
+.sp-pilot-status { padding: 20px 0; color: var(--sp-muted); }
+@media (prefers-color-scheme: dark) {
+    .sp-pilot { --sp-bg: #202329; --sp-text: #ecedf0; --sp-muted: #a2a9b6; --sp-line: #3b4049; --sp-hover: #2d323b; --sp-accent: #5477ed; }
+    .sp-pilot-error { color: #ffacac; }
+}
+@media (max-width: 600px) { .sp-pilot { top: 40px; right: 8px; width: calc(100% - 16px); max-height: 65vh; } }
