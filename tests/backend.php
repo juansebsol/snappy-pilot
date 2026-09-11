@@ -35,24 +35,46 @@ rejected(fn() => Input::parse(str_repeat('a', 64001)), 'large');
 rejected(fn() => Input::parse('{'), 'invalid');
 rejected(fn() => Input::parse('[]'), 'invalid');
 $prompts = Prompts::build($input, $settings);
-check(str_contains($prompts[0]['content'], 'professionalism'), 'Action-specific prompt');
+check(str_contains($prompts[0]['content'], 'professionally'), 'Action-specific prompt');
 check(str_contains($prompts[0]['content'], 'untrusted'), 'Email instruction boundary');
 check(!str_contains(json_encode($prompts), 'test-secret'), 'No secret in prompt');
-check(json_decode($prompts[1]['content'], true)['email_data']['text'] === $input['text'], 'Structured context');
+check(str_contains($prompts[1]['content'], $input['text']), 'Draft in prompt');
+
+// Reply length tracks the draft being edited, so short drafts get short replies.
+$budget = Input::budget($input);
+check($budget < Input::budget(['text' => str_repeat('a', 4000)]), 'Budget scales with draft');
+check(Input::budget(['text' => '']) === 900, 'Default budget for empty drafts');
+check(Input::tokens($budget, 8192) < 512, 'Token budget follows character budget');
+check(Input::tokens($budget, 128) === 128, 'Never exceeds the configured token limit');
+check(str_contains($prompts[0]['content'], (string) $budget), 'Budget stated in prompt');
+
+// Assistant chatter and reasoning dumps must never reach the draft.
+check(Input::finalize("Thinking Process:\n1. Analyze the request\n\n\"Mom, I am sorry.\"") === 'Mom, I am sorry.', 'Strip thinking dumps');
+check(Input::finalize("Here's the corrected version:\n\nHi Claire,\nThanks.\n\nLet me know if you want changes.")
+    === "Hi Claire,\nThanks.", 'Strip preamble and trailing offer');
+check(Input::finalize('"Hi Claire, thanks."') === 'Hi Claire, thanks.', 'Unwrap fully quoted email');
+foreach (['based on common usage errors. Or I can leave it as', 'Sure! Here is the revised text:', '   '] as $slop) {
+    rejected(fn() => Input::finalize($slop), 'commentary');
+}
+check(mb_strlen(Input::finalize(str_repeat('Sentence here. ', 200), 240)) < 400, 'Runaway replies are clipped');
+
 $provider = new OpenAICompatibleProvider($settings, function ($url, $headers, $payload, $timeout) {
     check($url === 'https://openrouter.ai/api/v1/chat/completions', 'Completion URL');
     check(in_array('Authorization: Bearer test-secret', $headers), 'Server authorization');
     check(in_array('X-OpenRouter-Title: SnappyPilot', $headers), 'OpenRouter attribution');
     check(!isset($payload['temperature']) && $payload['stream'] === false, 'Portable optional parameters');
+    check($payload['max_tokens'] === 200, 'Requested token budget');
+    check(($payload['reasoning']['exclude'] ?? null) === true, 'Hide reasoning traces');
     check($timeout === 45, 'Request timeout');
     return [200, json_encode(['choices' => [['message' => ['content' => '<script>alert(1)</script> plain text']]]])];
 });
-check($provider->complete($prompts) === '<script>alert(1)</script> plain text', 'Provider text retained as data; frontend escapes it');
+check($provider->complete($prompts, 200, $budget) === '<script>alert(1)</script> plain text', 'Provider text retained as data; frontend escapes it');
+check((new OpenAICompatibleProvider($settings, fn() => [200, json_encode(['choices' => [['finish_reason' => 'length', 'message' => ['content' => 'partial']]]])]))->complete($prompts) === 'partial', 'Keep truncated email text');
 foreach ([[401, '{}', 'access'], [402, '{}', 'credits'], [429, '{}', 'rate limited'], [500, 'secret diagnostic', 'could not'],
-    [200, '{', 'unreadable'], [200, '{}', 'no text'], [200, '{"error":{"message":"secret"}}', 'could not'],
+    [200, '{', 'unreadable'], [200, '{}', 'no text'], [200, '{"error":{"message":"secret"}}', 'rejected'],
     [200, '{"choices":[{"message":{"content":null}}]}', 'no text'],
     [200, '{"choices":["invalid"]}', 'no text'],
-    [200, '{"choices":[{"finish_reason":"length","message":{"content":"partial"}}]}', 'output limit'],
+    [200, '{"choices":[{"finish_reason":"length","message":{"content":""}}]}', 'output limit'],
     [200, str_repeat('x', 262145), 'oversized']] as [$status, $body, $part]) {
     rejected(fn() => (new OpenAICompatibleProvider($settings, fn() => [$status, $body]))->complete($prompts), $part);
 }

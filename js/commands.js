@@ -17,8 +17,13 @@
         ['ask', 'Ask about this email', '?', 'info'],
         ['custom', 'Custom instruction', '✦', 'custom']
     ].map(([id, label, icon, kind]) => ({ id, label, icon, kind }));
-    pilot.filter = query => pilot.commands.filter(command =>
-        command.label.toLowerCase().includes(query.trim().toLowerCase()));
+    pilot.filter = query => {
+        const needle = query.trim().toLowerCase().replace(/\s+/g, '');
+        if (!needle) return pilot.commands;
+        return pilot.commands.filter(command =>
+            command.label.toLowerCase().replace(/\s+/g, '').includes(needle)
+            || command.id.replace(/_/g, '').includes(needle));
+    };
     pilot.read = value => typeof value === 'function' ? value() : value;
     pilot.limit = (text, bytes) => {
         const encoder = new TextEncoder();

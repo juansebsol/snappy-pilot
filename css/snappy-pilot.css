@@ -1,40 +1,87 @@
-.sp-pilot-host { position: relative; }
+.sp-pilot-host {
+    position: relative;
+    --sp-bg: #fff; --sp-text: #1f2328; --sp-muted: #6e7781; --sp-line: #e3e6ea;
+    --sp-hover: #f3f5f7; --sp-accent: #2563eb;
+    --sp-font: 13px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
 .sp-pilot {
-    --sp-bg: #fff; --sp-text: #252a32; --sp-muted: #6c7380; --sp-line: #e3e6eb;
-    --sp-hover: #f2f4f7; --sp-accent: #355bd7;
-    position: absolute; z-index: 30; top: 44px; right: 12px;
-    box-sizing: border-box; width: min(390px, calc(100% - 24px));
-    max-height: min(540px, 75vh); overflow: auto;
-    padding: 14px; border: 1px solid var(--sp-line); border-radius: 10px;
+    position: absolute; z-index: 30;
+    left: 50%; transform: translateX(-50%);
+    bottom: 20px;
+    box-sizing: border-box;
+    width: min(640px, calc(100% - 28px));
+    max-height: min(58%, 380px); overflow: auto;
+    padding: 12px 14px; border: 1px solid var(--sp-line); border-radius: 12px;
     background: var(--sp-bg); color: var(--sp-text);
-    box-shadow: 0 5px 20px #11182716;
-    font: 13px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    box-shadow: 0 10px 32px #0f172a26;
+    font: var(--sp-font);
     text-align: left; white-space: normal;
 }
 .sp-pilot * { box-sizing: border-box; }
-.sp-pilot-head { display: flex; flex-wrap: wrap; gap: 5px 12px; align-items: center; margin-bottom: 12px; }
-.sp-pilot-brand { font-size: 13px; font-weight: 650; letter-spacing: -.2px; }
+.sp-pilot-head { display: flex; gap: 8px; align-items: baseline; margin-bottom: 10px; }
+.sp-pilot-brand { font-size: 12px; font-weight: 650; }
 .sp-pilot-title { font-size: 11px; color: var(--sp-muted); }
-.sp-pilot-menu { max-height: 340px; overflow-y: auto; }
-.sp-pilot-command { display: block; width: 100%; padding: 7px 9px; border: 0; border-radius: 5px; background: transparent; color: inherit; text-align: left; font: inherit; cursor: pointer; }
+
+/* Command palette: wide rows, short list. */
+.sp-pilot-menu { max-height: 232px; overflow-y: auto; }
+.sp-pilot-command {
+    display: flex; gap: 9px; align-items: center; width: 100%;
+    padding: 7px 9px; border: 0; border-radius: 7px;
+    background: transparent; color: inherit; text-align: left; font: inherit; cursor: pointer;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sp-pilot-icon { flex: none; width: 1.2em; color: var(--sp-muted); text-align: center; }
 .sp-pilot-command:hover, .sp-pilot-active { background: var(--sp-hover); }
-.sp-pilot-note { font-size: 11px; line-height: 1.5; color: var(--sp-muted); margin: 10px 0 0; }
-.sp-pilot-scope { font-size: 11px; color: var(--sp-muted); margin: 0 0 10px; }
-.sp-pilot .sp-pilot-search, .sp-pilot .sp-pilot-instruction { display: block; width: 100%; padding: 9px; border: 1px solid var(--sp-line); border-radius: 6px; background: var(--sp-bg); color: var(--sp-text); font: inherit; box-shadow: none; margin: 0 0 9px; }
-.sp-pilot .sp-pilot-instruction { min-height: 76px; resize: vertical; }
-.sp-pilot-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
-.sp-pilot .sp-pilot-button { border: 1px solid var(--sp-line); border-radius: 6px; padding: 6px 10px; background: var(--sp-bg); color: var(--sp-text); cursor: pointer; font: inherit; margin-right: 4px; }
+
+.sp-pilot-note { font-size: 11px; color: var(--sp-muted); margin: 8px 0 0; }
+.sp-pilot-scope { font-size: 11px; color: var(--sp-muted); margin: 0 0 8px; }
+.sp-pilot .sp-pilot-search, .sp-pilot .sp-pilot-instruction {
+    display: block; width: 100%; padding: 8px 10px; border: 1px solid var(--sp-line); border-radius: 8px;
+    background: var(--sp-bg); color: var(--sp-text); font: inherit; box-shadow: none; margin: 0 0 9px;
+}
+.sp-pilot .sp-pilot-instruction { min-height: 62px; resize: vertical; }
+.sp-pilot-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.sp-pilot .sp-pilot-button {
+    border: 1px solid var(--sp-line); border-radius: 8px; padding: 6px 11px;
+    background: var(--sp-bg); color: var(--sp-text); cursor: pointer; font: inherit;
+}
 .sp-pilot .sp-pilot-button:hover { background: var(--sp-hover); }
 .sp-pilot .sp-pilot-primary { background: var(--sp-accent); border-color: var(--sp-accent); color: #fff; }
-.sp-pilot .sp-pilot-primary:hover { background: #294cbe; }
+.sp-pilot .sp-pilot-primary:hover { background: #1d4ed8; }
 .sp-pilot :focus-visible { outline: 2px solid var(--sp-accent); outline-offset: 2px; }
-.sp-pilot-text { font: inherit; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 250px; overflow: auto; background: transparent; color: inherit; padding: 0; margin: 8px 0; border: 0; }
-.sp-pilot-original { margin-bottom: 10px; font-size: 12px; }
+.sp-pilot-text {
+    font: inherit; white-space: pre-wrap; overflow-wrap: anywhere;
+    max-height: 200px; overflow: auto; background: transparent; color: inherit;
+    padding: 0; margin: 4px 0 0; border: 0;
+}
+.sp-pilot-original { margin-bottom: 8px; font-size: 12px; }
 .sp-pilot-original summary { cursor: pointer; color: var(--sp-muted); }
-.sp-pilot-error { color: #b13535; margin: 8px 0 14px; }
-.sp-pilot-status { padding: 20px 0; color: var(--sp-muted); }
+.sp-pilot-error { color: #b13535; margin: 4px 0 10px; }
+.sp-pilot-status { padding: 14px 0; color: var(--sp-muted); }
+
+/* Typing hint, same anchor as the panel. */
+.sp-pilot-hint {
+    position: absolute; z-index: 29;
+    left: 50%; transform: translateX(-50%);
+    bottom: 20px;
+    display: flex; gap: 8px; align-items: center;
+    max-width: calc(100% - 28px);
+    padding: 7px 14px; border: 1px solid var(--sp-line); border-radius: 999px;
+    background: var(--sp-bg); color: var(--sp-muted);
+    box-shadow: 0 6px 18px #0f172a1f;
+    font: var(--sp-font); font-size: 12px; white-space: nowrap;
+    opacity: 0; pointer-events: none; transition: opacity .18s ease;
+}
+.sp-pilot-hint.sp-pilot-show { opacity: 1; }
+
 @media (prefers-color-scheme: dark) {
-    .sp-pilot { --sp-bg: #202329; --sp-text: #ecedf0; --sp-muted: #a2a9b6; --sp-line: #3b4049; --sp-hover: #2d323b; --sp-accent: #5477ed; }
+    .sp-pilot-host {
+        --sp-bg: #1c1f24; --sp-text: #eceef1; --sp-muted: #9aa3ad;
+        --sp-line: #3a4048; --sp-hover: #2a3038; --sp-accent: #5b8cff;
+    }
     .sp-pilot-error { color: #ffacac; }
 }
-@media (max-width: 600px) { .sp-pilot { top: 40px; right: 8px; width: calc(100% - 16px); max-height: 65vh; } }
+@media (max-width: 640px) {
+    .sp-pilot { bottom: 12px; width: calc(100% - 16px); max-height: 62%; }
+    .sp-pilot-hint { bottom: 12px; }
+}

@@ -17,6 +17,11 @@
             this.ui = new P.UI(editor.ui.container, () => this.close());
             const container = editor.ui.container;
             container.classList.add('sp-pilot-host');
+            this.tip = new P.Hint(container);
+            container.addEventListener('focusin', event => {
+                if (!this.state && (event.target === editor.root || event.target === editor.ui.plain)) this.tip.show();
+            });
+            container.addEventListener('focusout', () => this.tip.hide());
             container.addEventListener('input', event => {
                 if (event.isComposing || (event.target !== editor.root && event.target !== editor.ui.plain)) return;
                 if (this.state && this.state !== 'menu') return;
@@ -30,6 +35,11 @@
                 if (this.state === 'menu') this.ui.menuKey(event);
                 else if (this.state && event.key === 'Escape') {
                     event.preventDefault(); event.stopImmediatePropagation(); this.close();
+                } else if (event.key === '/' && !event.ctrlKey && !event.metaKey && !event.altKey && !event.isComposing
+                    && !this.state && editor.commandStart()) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    this.open();
                 }
             }, true);
             container.addEventListener('change', event => {
@@ -42,10 +52,11 @@
         }
         open(token = null) {
             if (!enabled() || !this.editor.active()) return;
+            this.tip.dismiss();
             if (this.state && this.state !== 'menu') this.close(false);
             this.state = 'menu';
             this.token = token;
-            this.ui.menu(token?.query || '', command => this.select(command), !token);
+            this.ui.menu(token?.query || '', command => this.select(command));
         }
         close(focus = true) {
             ++this.generation;
@@ -64,12 +75,19 @@
                 this.token = null;
                 const snapshot = this.editor.capture(command);
                 const context = this.editor.context(snapshot, messageView);
-                this.state = 'form';
-                this.ui.form(snapshot, context, rl.pluginSettingsGet('snappy-pilot', 'language'), (instruction, language) => {
-                    const payload = { action: command.id, text: snapshot.text, ...context, instruction, language };
-                    delete payload.truncated;
-                    this.generate(snapshot, payload);
-                });
+                const language = rl.pluginSettingsGet('snappy-pilot', 'language') || 'English';
+                if (['custom', 'ask', 'translate'].includes(command.id)) {
+                    this.state = 'form';
+                    this.ui.form(snapshot, context, language, (instruction, target) => {
+                        const payload = { action: command.id, text: snapshot.text, ...context, instruction, language: target };
+                        delete payload.truncated;
+                        this.generate(snapshot, payload);
+                    });
+                    return;
+                }
+                const payload = { action: command.id, text: snapshot.text, ...context, instruction: '', language };
+                delete payload.truncated;
+                this.generate(snapshot, payload);
             } catch (error) { this.state = 'error'; this.ui.error(error.message); }
         }
         generate(snapshot, payload) {

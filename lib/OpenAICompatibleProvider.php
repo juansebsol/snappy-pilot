@@ -7,14 +7,16 @@ final class OpenAICompatibleProvider implements Provider
 {
     public function __construct(private Settings $settings, private ?\Closure $transport = null) {}
 
-    public function complete(array $messages): string
+    public function complete(array $messages, int $maxTokens = 0, int $budget = 0): string
     {
         $s = $this->settings;
-        $payload = ['model' => $s->model, 'messages' => $messages, 'max_tokens' => $s->tokens, 'stream' => false];
+        $payload = ['model' => $s->model, 'messages' => $messages, 'stream' => false,
+            'max_tokens' => $maxTokens > 0 ? min($maxTokens, $s->tokens) : min($s->tokens, 512)];
         if ($s->temperature !== null) { $payload['temperature'] = $s->temperature; }
         $headers = ['Content-Type: application/json', 'Accept: application/json', 'Authorization: Bearer ' . $s->key];
         if (strtolower((string) parse_url($s->endpoint, PHP_URL_HOST)) === 'openrouter.ai') {
             $headers[] = 'X-OpenRouter-Title: SnappyPilot';
+            $payload['reasoning'] = ['exclude' => true];
         }
         try {
             [$status, $body] = $this->transport
@@ -54,7 +56,7 @@ final class OpenAICompatibleProvider implements Provider
                 ? 'The response reached the output limit before any text was produced. Increase Maximum output tokens in SnappyPilot settings, or pick a faster non-reasoning model.'
                 : 'The AI provider returned no text. Try another instruction or model.');
         }
-        return Input::text($content, 48000, 'AI response');
+        return Input::finalize($content, $budget);
     }
 
     private static function providerMessage(mixed $body): string

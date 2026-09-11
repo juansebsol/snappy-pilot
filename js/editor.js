@@ -27,7 +27,7 @@
             }
             const range = this.ui.squire.getSelection()?.cloneRange();
             if (!range || !this.root.contains(range.startContainer) || !this.root.contains(range.endContainer)) {
-                throw new Error('Place the cursor inside your draft first.');
+                return this.draftRange();
             }
             return range;
         }
@@ -42,11 +42,8 @@
         draftRange() {
             const range = document.createRange();
             range.selectNodeContents(this.root);
-            // Forwarded bodies and imported drafts have no trustworthy draft boundary.
-            if (this.vm.aDraftInfo?.[0] === 'forward' || this.vm.bFromDraft || P.read(this.vm.draftUid)) return null;
             const stops = [...this.root.querySelectorAll(protectedSelector)].map(node => {
                 while (node.parentNode !== this.root) node = node.parentNode;
-                // SnappyMail generates a reply attribution paragraph immediately before the quote.
                 if (node.matches('blockquote') && node.previousElementSibling?.matches('p')) {
                     node = node.previousElementSibling;
                 }
@@ -54,7 +51,7 @@
             });
             if (stops.length) {
                 const first = [...this.root.childNodes].find(node => stops.includes(node));
-                range.setEndBefore(first);
+                if (first) range.setEndBefore(first);
             }
             return range;
         }
@@ -64,18 +61,20 @@
             let range = this.selection();
             const plain = this.ui.mode === 'plain';
             const selected = plain ? range.start !== range.end : !range.collapsed;
-            if (!this.safe(range)) throw new Error('Choose draft text outside signatures and quoted history.');
             let scope = 'Selected text';
             if (!selected) {
-                const draft = plain ? null : this.draftRange();
-                if (draft) { range = draft; scope = 'Editable draft above signature and quoted history'; }
-                else if (command.kind === 'transform') {
-                    throw new Error('Select the exact draft text to change. This editor has no reliable whole-draft boundary.');
-                } else { scope = 'Cursor position · no existing text will be replaced'; }
+                if (plain) {
+                    range = { start: 0, end: this.ui.plain.value.length };
+                    scope = 'Current draft';
+                } else {
+                    range = this.draftRange();
+                    scope = 'Current draft';
+                }
             }
+            if (!this.safe(range)) throw new Error('Choose draft text outside signatures and quoted history.');
             const text = plain ? this.ui.plain.value.slice(range.start, range.end) : P.plain(range.cloneContents());
             if (new TextEncoder().encode(text).length > 16000) throw new Error('The draft is too large. Select a shorter passage.');
-            if (command.kind === 'transform' && !text) throw new Error('Write or select some draft text first.');
+            if (command.kind === 'transform' && !text) throw new Error('Write a draft first, then run this command.');
             return { range, text, scope, mode: this.ui.mode, value: this.value(), command };
         }
 
@@ -107,20 +106,44 @@
             if (this.ui.mode === 'plain') {
                 if (range.start !== range.end) return null;
                 const prefix = this.ui.plain.value.slice(0, range.start);
-                const match = prefix.match(/(?:^|\n)[ \t]*\/([a-z ]{0,35})$/i);
-                if (!match) return null;
-                return { query: match[1], range: { start: range.start - match[1].length - 1, end: range.end } };
+                if (!/(?:^|[\s\u00a0])\/$/.test(prefix)) return null;
+                return { query: '', range: { start: range.start - 1, end: range.end } };
             }
-            if (!range.collapsed || range.startContainer.nodeType !== 3 || !this.safe(range)) return null;
-            const node = range.startContainer;
-            const block = node.parentElement.closest('div,p,li,td,pre') || this.root;
+            if (!range.collapsed || !this.safe(range)) return null;
+            const prefix = this.linePrefix(range);
+            if (!/(?:^|[\s\u00a0])\/$/.test(prefix)) return null;
+            if (range.startContainer.nodeType === 3 && range.startOffset > 0) {
+                range.setStart(range.startContainer, range.startOffset - 1);
+            }
+            return { query: '', range };
+        }
+
+        linePrefix(range) {
+            const block = (range.startContainer.nodeType === 1 ? range.startContainer : range.startContainer.parentElement)
+                ?.closest('div,p,li,td,pre') || this.root;
             const prefix = range.cloneRange();
             prefix.selectNodeContents(block);
-            prefix.setEnd(node, range.startOffset);
-            const match = prefix.toString().match(/^\s*\/([a-z ]{0,35})$/i);
-            if (!match || range.startOffset < match[1].length + 1) return null;
-            range.setStart(node, range.startOffset - match[1].length - 1);
-            return { query: match[1], range };
+            prefix.setEnd(range.startContainer, range.startOffset);
+            return prefix.toString();
+        }
+
+        commandStart() {
+            if (!this.active()) return false;
+            try {
+                if (this.ui.mode === 'plain') {
+                    const start = this.ui.plain.selectionStart, end = this.ui.plain.selectionEnd;
+                    if (start !== end) return false;
+                    return this.slashBoundary(this.ui.plain.value.slice(0, start));
+                }
+                const range = this.ui.squire.getSelection()?.cloneRange();
+                if (!range) return !String(this.root.textContent || '').trim();
+                if (!range.collapsed) return false;
+                return this.slashBoundary(this.linePrefix(range));
+            } catch { return false; }
+        }
+
+        slashBoundary(prefix) {
+            return prefix === '' || /[\s\u00a0]$/.test(prefix);
         }
 
         removeSlash(token) {

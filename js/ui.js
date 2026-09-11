@@ -7,6 +7,32 @@
         if (text !== undefined) node.textContent = text;
         return node;
     };
+    P.Hint = class {
+        constructor(host) {
+            this.node = el('div', 'sp-pilot-hint');
+            this.node.append(el('span', 'sp-pilot-icon', '✦'), el('span', '', 'Type / for writing help'));
+            host.append(this.node);
+            this.timer = 0;
+        }
+        seen() {
+            try { return localStorage.getItem('sp-pilot-hint') === 'off'; } catch { return false; }
+        }
+        show() {
+            if (this.seen()) return;
+            clearTimeout(this.timer);
+            this.node.classList.add('sp-pilot-show');
+            this.timer = setTimeout(() => this.hide(), 7000);
+        }
+        hide() {
+            clearTimeout(this.timer);
+            this.node.classList.remove('sp-pilot-show');
+        }
+        dismiss() {
+            this.hide();
+            try { localStorage.setItem('sp-pilot-hint', 'off'); } catch { /* private mode */ }
+        }
+    };
+
     P.UI = class {
         constructor(host, onClose) {
             this.host = host;
@@ -30,11 +56,11 @@
             button.addEventListener('click', action);
             return button;
         }
-        menu(query, choose, toolbar = false) {
-            const panel = this.shell('Write with a little help');
+        menu(query, choose) {
+            const panel = this.shell('Commands');
             const search = el('input', 'sp-pilot-search');
-            search.placeholder = 'Find a command…';
-            search.setAttribute('aria-label', 'Find a SnappyPilot command');
+            search.placeholder = 'Search commands';
+            search.setAttribute('aria-label', 'Search commands');
             search.value = query;
             this.list = el('div', 'sp-pilot-menu');
             this.list.setAttribute('role', 'listbox');
@@ -44,10 +70,10 @@
                 this.index = 0;
                 this.list.replaceChildren();
                 this.items.forEach(command => {
-                    const button = this.button(command.icon + '   ' + command.label, () => choose(command));
+                    const button = this.button('', () => choose(command));
                     button.className = 'sp-pilot-command';
                     button.setAttribute('role', 'option');
-                    // Preserve Squire/plain selection when choosing with a pointer.
+                    button.append(el('span', 'sp-pilot-icon', command.icon), el('span', '', command.label));
                     button.addEventListener('mousedown', event => event.preventDefault());
                     this.list.append(button);
                 });
@@ -57,10 +83,9 @@
             this.choose = choose;
             search.addEventListener('input', () => render(search.value));
             search.addEventListener('keydown', event => this.menuKey(event));
-            if (toolbar) panel.append(search);
-            panel.append(this.list, el('footer', 'sp-pilot-note', '↑ ↓ Navigate · Enter Select · Esc Close'));
+            panel.append(search, this.list);
             render(query);
-            if (toolbar) search.focus();
+            search.focus();
         }
         highlight() {
             [...this.list.children].forEach((node, index) => {
@@ -84,15 +109,9 @@
         }
         form(snapshot, context, language, generate) {
             const panel = this.shell(snapshot.command.label);
-            panel.append(el('p', 'sp-pilot-scope', snapshot.scope));
-            if (snapshot.text) {
-                const original = el('details', 'sp-pilot-original');
-                original.append(el('summary', '', 'Original text'), el('pre', 'sp-pilot-text', snapshot.text));
-                panel.append(original);
-            }
             const instruction = el('textarea', 'sp-pilot-instruction');
             const needs = ['ask', 'custom'].includes(snapshot.command.id);
-            instruction.placeholder = needs ? 'What would you like to say or ask?' : 'Additional instructions (optional)';
+            instruction.placeholder = needs ? 'What should it say?' : 'Optional note';
             instruction.setAttribute('aria-label', 'Your instruction');
             instruction.maxLength = 4000;
             const target = el('input', 'sp-pilot-search');
@@ -101,12 +120,6 @@
             target.setAttribute('aria-label', 'Translate into');
             if (snapshot.command.id === 'translate') panel.append(el('label', 'sp-pilot-note', 'Translate into'), target);
             panel.append(instruction);
-            const disclosure = context.context
-                ? 'Sends this text and the available reply context to your configured AI provider. Attachments are excluded.'
-                : 'Sends this text and your instruction to your configured AI provider. Attachments are excluded.';
-            panel.append(el('p', 'sp-pilot-note', disclosure));
-            if (snapshot.command.kind === 'info') panel.append(el('p', 'sp-pilot-note', 'Uses available quoted/displayed context only; other thread messages are not fetched.'));
-            if (context.truncated) panel.append(el('p', 'sp-pilot-note', 'Long email context has been shortened.'));
             const actions = el('div', 'sp-pilot-actions');
             const button = this.button('Generate', () => {
                 if (needs && !instruction.value.trim()) { instruction.focus(); return; }
@@ -118,21 +131,20 @@
             instruction.focus();
         }
         loading() {
-            const panel = this.shell('Working on your draft');
+            const panel = this.shell('Writing');
             panel.setAttribute('aria-busy', 'true');
-            const status = el('p', 'sp-pilot-status', 'Generating a suggestion…');
+            const status = el('p', 'sp-pilot-status', 'Working…');
             status.setAttribute('role', 'status');
             panel.append(status, this.button('Cancel', this.onClose));
         }
         result(snapshot, text, apply, retry) {
             const panel = this.shell(snapshot.command.label);
-            panel.append(el('p', 'sp-pilot-scope', 'Review before applying · ' + snapshot.scope));
             const output = el('pre', 'sp-pilot-text', text);
             output.setAttribute('aria-live', 'polite');
             panel.append(output);
             const actions = el('div', 'sp-pilot-actions');
             if (snapshot.command.kind !== 'info') actions.append(this.button(snapshot.text ? 'Replace' : 'Insert', () => apply(false), true));
-            actions.append(this.button('Insert below', () => apply(true)), this.button('Try again', retry), this.button('Discard', this.onClose));
+            actions.append(this.button('Insert below', () => apply(true)), this.button('Retry', retry), this.button('Discard', this.onClose));
             panel.append(actions);
             actions.querySelector('button').focus();
         }

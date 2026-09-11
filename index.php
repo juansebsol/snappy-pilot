@@ -10,7 +10,7 @@ use SnappyPilot\{Input, Settings, Prompts, PilotError, OpenAICompatibleProvider}
 
 class SnappyPilotPlugin extends \RainLoop\Plugins\AbstractPlugin
 {
-    const NAME = 'SnappyPilot', AUTHOR = 'SnappyPilot contributors', VERSION = '1.0.3',
+    const NAME = 'SnappyPilot', AUTHOR = 'SnappyPilot contributors', VERSION = '1.0.6',
         RELEASE = '2026-09-10', REQUIRED = '2.38.2', CATEGORY = 'General', LICENSE = 'MIT',
         DESCRIPTION = 'An OpenRouter-powered compose assistant. Preview every result before applying it.';
 
@@ -79,7 +79,12 @@ class SnappyPilotPlugin extends \RainLoop\Plugins\AbstractPlugin
             // FPM php.ini max_execution_time is 30s; the plugin timeout can be 45–90s.
             @set_time_limit($settings->timeout + 15);
             $input = Input::parse($this->jsonParam('Payload', ''));
-            $result = (new OpenAICompatibleProvider($settings))->complete(Prompts::build($input, $settings));
+            $budget = Input::budget($input);
+            $result = (new OpenAICompatibleProvider($settings))->complete(
+                Prompts::build($input, $settings, $budget),
+                Input::tokens($budget, $settings->tokens),
+                $budget
+            );
             return $this->jsonResponse(__FUNCTION__, ['ok' => true, 'text' => $result]);
         } catch (PilotError $error) {
             return $this->jsonResponse(__FUNCTION__, ['ok' => false, 'error' => $error->getMessage()]);
