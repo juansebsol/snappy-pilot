@@ -2,8 +2,13 @@
     'use strict';
     const P = window.SnappyPilot;
     const editors = new WeakMap();
+    const pending = new Set();
     let compose, messageView, controller;
     const enabled = () => !!rl.pluginSettingsGet('snappy-pilot', 'enabled');
+    // AbstractViewPopup prefixes the template id: super('Compose') → 'PopupsCompose'.
+    const composeDom = () => compose?.viewModelDom || document.getElementById('V-PopupsCompose');
+    const isComposeView = vm => vm?.viewModelTemplateID === 'PopupsCompose' || vm?.viewModelDom?.id === 'V-PopupsCompose';
+    const isComposeEditor = ui => !!ui?.container && !!composeDom()?.contains(ui.container);
 
     class Controller {
         constructor(editor) {
@@ -101,30 +106,48 @@
     }
 
     function connect(ui) {
-        if (!compose || !ui || !compose.viewModelDom?.contains(ui.container)) return null;
+        if (!ui) return null;
+        if (!compose) {
+            if (isComposeEditor(ui)) pending.add(ui);
+            return null;
+        }
+        if (!compose.viewModelDom?.contains(ui.container)) return null;
+        pending.delete(ui);
         if (!editors.has(ui)) {
             try { editors.set(ui, new Controller(new P.Editor(ui, compose))); }
-            catch { return null; }
+            catch (error) {
+                console.error('[SnappyPilot] editor connect failed', error);
+                return null;
+            }
         }
         return (controller = editors.get(ui));
     }
 
     addEventListener('squire-toolbar', event => {
         const { squire: ui, actions } = event.detail || {};
-        if (!enabled() || !compose?.viewModelDom?.contains(ui?.container)) return;
-        actions.snappyPilot = { pilot: { html: '✦ Pilot', cmd: () => connect(ui)?.open() } };
-        // SquireUI fires the event before appending the editor and toolbar DOM.
+        if (!enabled() || !ui || !actions) return;
+        // SquireUI builds the toolbar immediately after this event. Register the
+        // button from the live Compose DOM, not from a stored view-model pointer.
+        if (!isComposeEditor(ui)) return;
+        if (!actions.snappyPilot) {
+            actions.snappyPilot = { pilot: { html: '✦ Pilot', cmd: () => connect(ui)?.open() } };
+            console.info('[SnappyPilot] compose toolbar registered');
+        }
         queueMicrotask(() => connect(ui));
     });
     const lifecycle = event => {
         const vm = event.detail;
-        if (vm?.viewModelTemplateID === 'Compose') {
+        if (isComposeView(vm)) {
             compose = vm;
-            if (vm.oEditor?.editor && enabled()) connect(vm.oEditor.editor);
+            if (enabled()) {
+                pending.forEach(ui => connect(ui));
+                if (vm.oEditor?.editor) connect(vm.oEditor.editor);
+            }
         } else if (vm?.viewModelTemplateID === 'MailMessageView') messageView = vm;
     };
     addEventListener('rl-view-model.create', lifecycle);
     addEventListener('rl-view-model', lifecycle);
     addEventListener('rl-vm-visible', lifecycle);
     addEventListener('pagehide', () => controller?.close(false));
+    console.info('[SnappyPilot] loaded', { enabled: enabled() });
 })();
