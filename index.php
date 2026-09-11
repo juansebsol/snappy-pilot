@@ -10,7 +10,7 @@ use SnappyPilot\{Input, Settings, Prompts, PilotError, OpenAICompatibleProvider}
 
 class SnappyPilotPlugin extends \RainLoop\Plugins\AbstractPlugin
 {
-    const NAME = 'SnappyPilot', AUTHOR = 'SnappyPilot contributors', VERSION = '1.0.1',
+    const NAME = 'SnappyPilot', AUTHOR = 'SnappyPilot contributors', VERSION = '1.0.3',
         RELEASE = '2026-09-10', REQUIRED = '2.38.2', CATEGORY = 'General', LICENSE = 'MIT',
         DESCRIPTION = 'An OpenRouter-powered compose assistant. Preview every result before applying it.';
 
@@ -50,7 +50,7 @@ class SnappyPilotPlugin extends \RainLoop\Plugins\AbstractPlugin
             ['endpoint', 'API base URL', Type::STRING, 'https://openrouter.ai/api/v1'],
             ['api_key', 'API key', Type::PASSWORD, ''],
             ['model', 'Model ID (provider/model)', Type::STRING, ''],
-            ['max_tokens', 'Maximum output tokens (64–8192)', Type::INT, 1200],
+            ['max_tokens', 'Maximum output tokens (64–8192)', Type::INT, 4096],
             ['temperature', 'Temperature (0–2; blank omits parameter)', Type::STRING, ''],
             ['language', 'Default language', Type::STRING, 'English'],
             ['system_prompt', 'Additional writing preferences', Type::STRING_TEXT, ''],
@@ -76,6 +76,8 @@ class SnappyPilotPlugin extends \RainLoop\Plugins\AbstractPlugin
                     : $this->Config()->Get('plugin', $field->Name(), $field->DefaultValue());
             }
             $settings = new Settings($values);
+            // FPM php.ini max_execution_time is 30s; the plugin timeout can be 45–90s.
+            @set_time_limit($settings->timeout + 15);
             $input = Input::parse($this->jsonParam('Payload', ''));
             $result = (new OpenAICompatibleProvider($settings))->complete(Prompts::build($input, $settings));
             return $this->jsonResponse(__FUNCTION__, ['ok' => true, 'text' => $result]);

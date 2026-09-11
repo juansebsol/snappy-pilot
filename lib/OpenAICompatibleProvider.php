@@ -25,21 +25,47 @@ final class OpenAICompatibleProvider implements Provider
         if ($status === 401 || $status === 403) { throw new PilotError('The AI provider rejected access. Ask your administrator to check the API key and model permissions.'); }
         if ($status === 402) { throw new PilotError('The AI provider account needs credits. Contact your administrator.'); }
         if ($status === 429) { throw new PilotError('The AI provider is busy or rate limited. Wait a moment and try again.'); }
-        if ($status < 200 || $status >= 300) { throw new PilotError('The AI provider could not complete this request. Try again or contact your administrator.'); }
+        if ($status < 200 || $status >= 300) {
+            throw new PilotError(self::providerMessage($body)
+                ?: 'The AI provider could not complete this request. Check the model ID and try again.');
+        }
         if (!is_string($body) || strlen($body) > 262144) { throw new PilotError('The AI provider returned an oversized response.'); }
         try { $result = json_decode($body, true, 32, JSON_THROW_ON_ERROR); }
         catch (\Throwable) { throw new PilotError('The AI provider returned an unreadable response. Try again.'); }
-        if (!is_array($result) || isset($result['error'])) { throw new PilotError('The AI provider could not complete this request. Try again.'); }
+        if (!is_array($result) || isset($result['error'])) {
+            throw new PilotError(self::providerMessage($body)
+                ?: 'The AI provider could not complete this request. Check the model ID and try again.');
+        }
         $choice = $result['choices'][0] ?? null;
         if (!is_array($choice) || !is_array($choice['message'] ?? null)) {
             throw new PilotError('The AI provider returned no text. Try another instruction or model.');
         }
-        if (($choice['finish_reason'] ?? '') === 'length') {
-            throw new PilotError('The response reached the output limit. Shorten your request or ask the administrator to increase the token limit.');
-        }
         $content = $choice['message']['content'] ?? null;
-        if (!is_string($content) || trim($content) === '') { throw new PilotError('The AI provider returned no text. Try another instruction or model.'); }
+        if (is_array($content)) {
+            $parts = [];
+            foreach ($content as $part) {
+                if (is_string($part)) { $parts[] = $part; }
+                else if (is_array($part) && is_string($part['text'] ?? null)) { $parts[] = $part['text']; }
+            }
+            $content = implode("\n", $parts);
+        }
+        if (!is_string($content) || trim($content) === '') {
+            throw new PilotError(($choice['finish_reason'] ?? '') === 'length'
+                ? 'The response reached the output limit before any text was produced. Increase Maximum output tokens in SnappyPilot settings, or pick a faster non-reasoning model.'
+                : 'The AI provider returned no text. Try another instruction or model.');
+        }
         return Input::text($content, 48000, 'AI response');
+    }
+
+    private static function providerMessage(mixed $body): string
+    {
+        if (!is_string($body) || $body === '') { return ''; }
+        try { $error = json_decode($body, true, 16, JSON_THROW_ON_ERROR); }
+        catch (\Throwable) { return ''; }
+        $message = $error['error']['message'] ?? (is_string($error['error'] ?? null) ? $error['error'] : '');
+        if (!is_string($message) || $message === '' || strlen($message) > 280) { return ''; }
+        if (preg_match('/sk-|bearer\s|api[_-]?key|authorization/i', $message)) { return ''; }
+        return 'The AI provider rejected the request: ' . trim($message);
     }
 
     private function request(string $url, array $headers, array $payload): array

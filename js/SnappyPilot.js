@@ -88,8 +88,14 @@
                     const result = response?.Result;
                     if (error || !result?.ok || typeof result.text !== 'string') {
                         this.state = 'error';
-                        this.ui.error(error ? 'The request failed or timed out. Check your connection and sign-in, then retry.'
-                            : (result?.error || 'SnappyPilot returned an invalid response.'), retry);
+                        const message = (typeof result?.error === 'string' && result.error)
+                            || (typeof response?.message === 'string' && response.message)
+                            || (error === 3 ? 'The request timed out. Try a faster model, a shorter draft, or increase the plugin timeout.'
+                                : error === 2 ? 'The request was cancelled.'
+                                : error ? 'The request failed. Check your connection and sign-in, then retry.'
+                                : 'SnappyPilot returned an invalid response.');
+                        console.error('[SnappyPilot] generate failed', error || 0);
+                        this.ui.error(message, retry);
                         return;
                     }
                     this.state = 'result';
