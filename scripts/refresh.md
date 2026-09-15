@@ -28,29 +28,25 @@ You should **not** need to manually delete files under `_data_/_default_/cache/`
 
 ## Verify the new build is live
 
-### A. Slash menu probe (easiest)
-
-1. Compose → type `/`
-2. Confirm the probe item is present (currently **`wild-test-v1.0`**)
-3. Selecting it should confirm the build loaded — no API call
-
-Remove the probe from `js/SnappyPilot.js` when you no longer need it.
-
-### B. Browser console
+### A. Browser console
 
 1. Open DevTools → Console
 2. Hard refresh
-3. Look for:  
-   `[SnappyPilot] loaded { enabled: …, build: 'wild-test-v1.0' }`  
-   (or whatever `build` string is logged in `js/SnappyPilot.js`)
+3. Look for: `[SnappyPilot] loaded { enabled: … }`
 
-### C. Server-side bundle check
+### B. Unique string in the bundle
+
+Put a temporary unique string in your change (label, console log, hint text), then:
 
 ```sh
-curl -sS 'https://mail.devmesh.xyz/?/Plugins/js/0/' | grep -o 'wild-test-v1.0\|to summon Pilot\|YOUR_UNIQUE_STRING'
+curl -sS 'https://mail.devmesh.xyz/?/Plugins/js/0/' | grep -o 'YOUR_UNIQUE_STRING\|to summon Pilot'
 ```
 
 If your string is in that response, the **server** is serving the new JS. If the server has it but the browser does not, hard refresh, clear Admin cache, or use a private window.
+
+### C. Temporary slash-menu probe
+
+For a hard-to-miss check, temporarily add a fake command in `js/SnappyPilot.js`, hard refresh, open `/`, confirm it appears, then remove it and bump the version again.
 
 ## What to edit
 

@@ -1,9 +1,6 @@
 (() => {
     'use strict';
     const P = window.SnappyPilot;
-    // Load probe — if you see this in the / menu, the live Plugins JS bundle refreshed.
-    P.commands = P.commands.filter(command => command.id !== 'wild_test');
-    P.commands.push({ id: 'wild_test', label: 'wild-test-v1.0', icon: '⚡', kind: 'info' });
     const editors = new WeakMap();
     const pending = new Set();
     let compose, messageView, controller;
@@ -87,12 +84,6 @@
             try {
                 this.editor.removeSlash(this.token);
                 this.token = null;
-                if (command.id === 'wild_test') {
-                    this.state = 'result';
-                    const snapshot = { command, text: '', mode: this.editor.ui.mode, value: this.editor.value(), range: this.editor.selection() };
-                    this.ui.result(snapshot, 'Build wild-test-v1.0 is loaded. Updates are reaching the live app.', () => this.close(), () => this.close());
-                    return;
-                }
                 const snapshot = this.editor.capture(command);
                 const context = this.editor.context(snapshot, messageView);
                 const language = rl.pluginSettingsGet('snappy-pilot', 'language') || 'English';
@@ -193,5 +184,5 @@
     addEventListener('rl-view-model', lifecycle);
     addEventListener('rl-vm-visible', lifecycle);
     addEventListener('pagehide', () => controller?.close(false));
-    console.info('[SnappyPilot] loaded', { enabled: enabled(), build: 'wild-test-v1.0' });
+    console.info('[SnappyPilot] loaded', { enabled: enabled() });
 })();
