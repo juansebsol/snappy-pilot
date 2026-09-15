@@ -10,6 +10,8 @@ PHP + vanilla JavaScript. A self-contained plugin, with no frontend framework or
 
 Requires SnappyMail 2.38.2, PHP 8.4 with cURL, Git and sudo access.
 
+After editing the live plugin, see [refresh.md](refresh.md) to force the UI to pick up JS/CSS changes.
+
 You can clone the repo anywhere temporary on the VPS. Use `/tmp/snappy-pilot`, then install the plugin into SnappyMail’s real plugin folder.
 
 Run this **entire block on your VPS**:

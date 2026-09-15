@@ -1,6 +1,9 @@
 (() => {
     'use strict';
     const P = window.SnappyPilot;
+    // Load probe — if you see this in the / menu, the live Plugins JS bundle refreshed.
+    P.commands = P.commands.filter(command => command.id !== 'wild_test');
+    P.commands.push({ id: 'wild_test', label: 'wild-test-v1.0', icon: '⚡', kind: 'info' });
     const editors = new WeakMap();
     const pending = new Set();
     let compose, messageView, controller;
@@ -18,12 +21,15 @@
             const container = editor.ui.container;
             container.classList.add('sp-pilot-host');
             this.tip = new P.Hint(container);
-            container.addEventListener('focusin', event => {
-                if (!this.state && (event.target === editor.root || event.target === editor.ui.plain)) this.tip.show();
-            });
-            container.addEventListener('focusout', () => this.tip.hide());
+            const refreshTip = () => {
+                const anchor = editor.ui.mode === 'plain' ? editor.ui.plain : editor.root;
+                this.tip.sync(!this.state && enabled() && editor.empty(), anchor);
+            };
+            this.refreshTip = refreshTip;
+            container.addEventListener('focusin', refreshTip);
             container.addEventListener('input', event => {
                 if (event.isComposing || (event.target !== editor.root && event.target !== editor.ui.plain)) return;
+                refreshTip();
                 if (this.state && this.state !== 'menu') return;
                 try {
                     const token = editor.slash();
@@ -43,16 +49,23 @@
                 }
             }, true);
             container.addEventListener('change', event => {
-                if (event.target === editor.ui.modeSelect) this.close(false);
+                if (event.target === editor.ui.modeSelect) {
+                    this.close(false);
+                    queueMicrotask(refreshTip);
+                }
             });
             document.addEventListener('mousedown', event => {
                 if (this.state === 'menu' && !container.contains(event.target)) this.close(false);
             });
-            editor.vm.modalVisible.subscribe(visible => { if (!visible) this.close(false); });
+            editor.vm.modalVisible.subscribe(visible => {
+                if (!visible) this.close(false);
+                else queueMicrotask(refreshTip);
+            });
+            queueMicrotask(refreshTip);
         }
         open(token = null) {
             if (!enabled() || !this.editor.active()) return;
-            this.tip.dismiss();
+            this.tip.hide();
             if (this.state && this.state !== 'menu') this.close(false);
             this.state = 'menu';
             this.token = token;
@@ -68,11 +81,18 @@
                 if (this.editor.ui.mode === 'plain') this.editor.ui.plain.focus();
                 else this.editor.ui.squire.focus();
             }
+            this.refreshTip?.();
         }
         select(command) {
             try {
                 this.editor.removeSlash(this.token);
                 this.token = null;
+                if (command.id === 'wild_test') {
+                    this.state = 'result';
+                    const snapshot = { command, text: '', mode: this.editor.ui.mode, value: this.editor.value(), range: this.editor.selection() };
+                    this.ui.result(snapshot, 'Build wild-test-v1.0 is loaded. Updates are reaching the live app.', () => this.close(), () => this.close());
+                    return;
+                }
                 const snapshot = this.editor.capture(command);
                 const context = this.editor.context(snapshot, messageView);
                 const language = rl.pluginSettingsGet('snappy-pilot', 'language') || 'English';
@@ -173,5 +193,5 @@
     addEventListener('rl-view-model', lifecycle);
     addEventListener('rl-vm-visible', lifecycle);
     addEventListener('pagehide', () => controller?.close(false));
-    console.info('[SnappyPilot] loaded', { enabled: enabled() });
+    console.info('[SnappyPilot] loaded', { enabled: enabled(), build: 'wild-test-v1.0' });
 })();

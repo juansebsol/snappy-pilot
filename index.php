@@ -10,8 +10,8 @@ use SnappyPilot\{Input, Settings, Prompts, PilotError, OpenAICompatibleProvider}
 
 class SnappyPilotPlugin extends \RainLoop\Plugins\AbstractPlugin
 {
-    const NAME = 'SnappyPilot', AUTHOR = 'SnappyPilot contributors', VERSION = '1.0.6',
-        RELEASE = '2026-09-10', REQUIRED = '2.38.2', CATEGORY = 'General', LICENSE = 'MIT',
+    const NAME = 'SnappyPilot', AUTHOR = 'SnappyPilot contributors', VERSION = '1.0.8-kbd-plain',
+        RELEASE = '2026-09-15', REQUIRED = '2.38.2', CATEGORY = 'General', LICENSE = 'MIT',
         DESCRIPTION = 'An OpenRouter-powered compose assistant. Preview every result before applying it.';
 
     public function Init(): void

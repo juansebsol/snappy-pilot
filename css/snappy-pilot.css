@@ -59,20 +59,28 @@
 .sp-pilot-error { color: #b13535; margin: 4px 0 10px; }
 .sp-pilot-status { padding: 14px 0; color: var(--sp-muted); }
 
-/* Typing hint, same anchor as the panel. */
+/* Empty-draft hint: sits over the editor until the user types. */
 .sp-pilot-hint {
-    position: absolute; z-index: 29;
-    left: 50%; transform: translateX(-50%);
-    bottom: 20px;
-    display: flex; gap: 8px; align-items: center;
-    max-width: calc(100% - 28px);
-    padding: 7px 14px; border: 1px solid var(--sp-line); border-radius: 999px;
-    background: var(--sp-bg); color: var(--sp-muted);
-    box-shadow: 0 6px 18px #0f172a1f;
-    font: var(--sp-font); font-size: 12px; white-space: nowrap;
-    opacity: 0; pointer-events: none; transition: opacity .18s ease;
+    position: absolute; z-index: 5;
+    top: 0; left: 0;
+    margin: 0; padding: 0; border: 0;
+    color: var(--sp-muted);
+    font: var(--sp-font); font-size: 14px; line-height: 1.5;
+    white-space: nowrap;
+    opacity: 0; pointer-events: none; transition: opacity .15s ease;
 }
 .sp-pilot-hint.sp-pilot-show { opacity: 1; }
+.sp-pilot-kbd {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: inherit;
+    font: inherit;
+    font-weight: inherit;
+}
 
 @media (prefers-color-scheme: dark) {
     .sp-pilot-host {
@@ -83,5 +91,5 @@
 }
 @media (max-width: 640px) {
     .sp-pilot { bottom: 12px; width: calc(100% - 16px); max-height: 62%; }
-    .sp-pilot-hint { bottom: 12px; }
+    .sp-pilot-hint { font-size: 13px; white-space: normal; max-width: calc(100% - 32px); }
 }

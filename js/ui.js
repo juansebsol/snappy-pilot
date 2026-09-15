@@ -9,28 +9,23 @@
     };
     P.Hint = class {
         constructor(host) {
+            this.host = host;
             this.node = el('div', 'sp-pilot-hint');
-            this.node.append(el('span', 'sp-pilot-icon', '✦'), el('span', '', 'Type / for writing help'));
+            this.node.setAttribute('aria-hidden', 'true');
+            const key = el('kbd', 'sp-pilot-kbd', '/');
+            this.node.append('Press ', key, ' to summon Pilot');
             host.append(this.node);
-            this.timer = 0;
         }
-        seen() {
-            try { return localStorage.getItem('sp-pilot-hint') === 'off'; } catch { return false; }
+        /** Empty-state overlay: visible only while the draft is blank. */
+        sync(visible, anchor) {
+            this.node.classList.toggle('sp-pilot-show', !!visible);
+            if (!visible || !anchor) return;
+            const hostBox = this.host.getBoundingClientRect();
+            const box = anchor.getBoundingClientRect();
+            this.node.style.top = Math.max(0, box.top - hostBox.top + 14) + 'px';
+            this.node.style.left = Math.max(0, box.left - hostBox.left + 16) + 'px';
         }
-        show() {
-            if (this.seen()) return;
-            clearTimeout(this.timer);
-            this.node.classList.add('sp-pilot-show');
-            this.timer = setTimeout(() => this.hide(), 7000);
-        }
-        hide() {
-            clearTimeout(this.timer);
-            this.node.classList.remove('sp-pilot-show');
-        }
-        dismiss() {
-            this.hide();
-            try { localStorage.setItem('sp-pilot-hint', 'off'); } catch { /* private mode */ }
-        }
+        hide() { this.sync(false); }
     };
 
     P.UI = class {

@@ -21,6 +21,14 @@
 
         value() { return this.ui.mode === 'plain' ? this.ui.plain.value : this.ui.squire.getHTML(); }
 
+        /** True when the editable draft (excluding quotes/signatures) has no user text. */
+        empty() {
+            if (!this.active()) return false;
+            if (this.ui.mode === 'plain') return !this.ui.plain.value.trim();
+            try { return !P.plain(this.draftRange().cloneContents()).trim(); }
+            catch { return false; }
+        }
+
         selection() {
             if (this.ui.mode === 'plain') {
                 return { start: this.ui.plain.selectionStart, end: this.ui.plain.selectionEnd };
